@@ -1,0 +1,15 @@
+# Variables de entorno
+.env
+
+# Dependencias
+node_modules/
+
+# Tests
+coverage/
+
+# Logs
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

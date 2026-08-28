@@ -1,0 +1,179 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Ejecutar lint
+        working-directory: backend
+        run: npm run lint
+
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Ejecutar pruebas
+        working-directory: backend
+        env:
+          POSTGRES_DB: promociones_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+        run: npm test
+
+
+  build:
+    name: Build Docker
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Verificar secretos requeridos
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          if [ -z "$POSTGRES_DB" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_DB"
+            exit 1
+          fi
+
+          if [ -z "$POSTGRES_USER" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_USER"
+            exit 1
+          fi
+
+          if [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_PASSWORD"
+            exit 1
+          fi
+
+      - name: Crear archivo .env
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          cat > .env <<EOF
+          POSTGRES_DB=$POSTGRES_DB
+          POSTGRES_USER=$POSTGRES_USER
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          EOF
+
+      - name: Construir imágenes Docker
+        run: docker compose build
+
+
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Verificar secretos requeridos
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          if [ -z "$POSTGRES_DB" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_DB"
+            exit 1
+          fi
+
+          if [ -z "$POSTGRES_USER" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_USER"
+            exit 1
+          fi
+
+          if [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "ERROR: Falta el secreto POSTGRES_PASSWORD"
+            exit 1
+          fi
+
+      - name: Crear archivo .env
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          cat > .env <<EOF
+          POSTGRES_DB=$POSTGRES_DB
+          POSTGRES_USER=$POSTGRES_USER
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          EOF
+
+      - name: Levantar aplicación
+        run: docker compose up -d
+
+      - name: Esperar y comprobar health
+        run: |
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health || true)
+
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check exitoso"
+              exit 0
+            fi
+
+            echo "Esperando aplicación... intento $i/30"
+            sleep 2
+          done
+
+          echo "ERROR: /health no respondió HTTP 200"
+          docker compose logs
+          exit 1
+
+      - name: Apagar aplicación
+        if: always()
+        run: docker compose down
