@@ -85,9 +85,6 @@ function App() {
       <header className="header">
         <div>
           <h1>Gestión de Promociones</h1>
-          <p>
-            Administra tus promociones de forma sencilla
-          </p>
         </div>
 
         <button

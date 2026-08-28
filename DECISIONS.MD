@@ -1,63 +1,61 @@
 # Decisiones técnicas
 
+## Contexto
+
+Para esta prueba técnica decidí construir una aplicación web sencilla para la gestión de promociones, teniendo como prioridad que fuera fácil de entender, mantener y ejecutar.
+
+La elección de las tecnologías parte de herramientas con las que ya tengo experiencia. Durante mis prácticas profesionales he trabajado en desarrollo Full Stack, manejo de APIs, bases de datos, Git y trabajo bajo metodologías ágiles, por lo que busqué aplicar esos conocimientos en un proyecto pequeño pero completo.
+
+---
+
 ## Frontend: React + Vite
 
-Se eligió React con Vite porque React es una tecnología ampliamente utilizada
-para construir interfaces web modernas y permite desarrollar componentes
-reutilizables de manera sencilla.
+Elegí React porque permite construir interfaces mediante componentes reutilizables y es una tecnología con la que tengo experiencia.
 
-Vite se utiliza como herramienta de construcción y desarrollo debido a su
-rápido servidor de desarrollo y su configuración sencilla.
+Para este proyecto separé la interfaz en componentes relacionados con las promociones, principalmente el formulario y la tabla. Esto permite mantener una estructura clara y facilita realizar cambios sin afectar toda la aplicación.
+
+Utilicé Vite como herramienta de desarrollo y construcción porque permite trabajar con React de forma sencilla y proporciona un servidor de desarrollo rápido.
+
+No utilicé una librería de componentes externa porque, para el alcance de esta prueba, no era necesario. Preferí mantener una interfaz sencilla utilizando CSS propio.
+
+---
 
 ## Backend: Node.js + Express
 
-Se eligió Node.js como tecnología backend porque permite construir APIs REST
-de manera eficiente utilizando JavaScript.
+Para el backend elegí Node.js con Express.
 
-Express se utiliza como framework HTTP para organizar las rutas, controladores
-y middleware de la aplicación de forma sencilla.
+La elección se debe principalmente a que permite crear una API REST de forma sencilla y es adecuada para el tamaño de este proyecto.
+
+Organicé el backend separando las responsabilidades en:
+
+- Rutas
+- Controladores
+- Servicios
+- Middlewares
+- Configuración de base de datos
+
+Esta separación evita concentrar toda la lógica en un solo archivo y facilita el mantenimiento y las pruebas.
+
+También utilicé middlewares para las validaciones relacionadas con las promociones y para controlar las reglas asociadas a los cambios de estado.
 
 ## Base de datos: PostgreSQL
 
-Se eligió PostgreSQL porque es un sistema de gestión de bases de datos
-relacional robusto y adecuado para manejar las relaciones entre categorías,
-productos y promociones.
+Elegí PostgreSQL porque es una base de datos relacional adecuada para la información que maneja el sistema.
 
-La estructura utiliza claves foráneas y restricciones SQL para garantizar la
-integridad de los datos.
+La aplicación utiliza diferentes entidades relacionadas entre sí:
 
-## Pruebas: Jest + Supertest
+- Productos
+- Categorías
+- Promociones
 
-Se utilizaron Jest y Supertest para implementar pruebas automatizadas de los
-endpoints del backend.
+Utilizar una base de datos relacional permite mantener estas relaciones de manera clara y evitar almacenar información repetida.
 
-Las pruebas verifican:
+La estructura permite que una promoción pueda estar asociada a un producto o a una categoría, de acuerdo con los requerimientos de la prueba.
+## Reglas de negocio
 
-- Health check de la aplicación.
-- Listado de promociones.
-- Creación de promociones.
-- Validaciones de promociones.
-- Transiciones de estado.
-- Eliminación de promociones.
-- Consulta de promociones por ID.
-- Resumen de promociones.
+Una parte importante del proyecto fue controlar correctamente el ciclo de vida de una promoción.
 
-## Contenedores: Docker
+Las promociones manejan tres estados:
 
-Se utiliza Docker para garantizar un entorno reproducible y facilitar el
-levantamiento de la aplicación junto con PostgreSQL.
-
-El objetivo es que frontend, backend y base de datos puedan ejecutarse mediante
-Docker Compose.
-
-## CI/CD: GitHub Actions
-
-Se utilizará GitHub Actions para automatizar el proceso de validación del
-proyecto.
-
-El flujo definido será:
-
-lint → test → build → smoke test
-
-El smoke test levantará la aplicación mediante Docker Compose y verificará que
-el endpoint `/health` responda correctamente.
+```text
+PROGRAMADA → ACTIVA → FINALIZADA
