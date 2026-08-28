@@ -1,7 +1,12 @@
 html {
   min-width: 320px;
+  background: #f5f3ff;
 }
 
 body {
   min-width: 320px;
+}
+
+#root {
+  min-height: 100vh;
 }
